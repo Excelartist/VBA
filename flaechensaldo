@@ -1,0 +1,696 @@
+Sub flaechensaldo()
+Dim blatt As Worksheet
+Dim Pruefsumme As Integer
+Dim lng_zeile As Long
+Dim lng_zeile2 As Long
+Dim i As Long
+Dim j As Long
+Dim EntzugN As Double
+Dim EntzugNRegion As Double
+Dim EntzugP As Double
+Dim EntzugPRegion As Double
+Dim Flaeche As Double
+Dim Ertrag As Double
+Dim SchlagID
+Dim IDArray
+Dim Groesse As Double
+Dim Zufuhr As Double
+Dim NKoeffizient As Double
+Dim PKoeffizient As Double
+Dim SpalteKoeffizientN As Integer
+Dim SpalteKoeffizientP As Integer
+Dim SpalteKoeffizientQuelle As Integer
+Dim KoeffizientComboBox As String
+Dim FrNr As Long
+Dim Matrix As Range
+Dim a As Long
+Dim b As Long
+Dim c As Long
+Dim letztespalte As Long
+Dim KoeffizientArray(1000, 3)
+Dim ErtragArray(200000, 1 To 4)
+Dim vorhanden As Boolean
+Dim SchlagN As Double
+Dim KulturNR As Long
+Dim IDKultur
+Dim KulturID
+Dim NWD As Double
+Dim NMD As Double
+Dim Nfix As Double
+Dim Nandere As Double
+Dim Zuordnung As String
+Dim FNNArray
+Dim letztezeileID As Long
+Dim letztezeileIDKultur As Long
+Dim ArrSchlaege_Saldo_N_Kreis(260, 20)
+Dim ArrSchlaege_Saldo_P_Kreis(260, 20)
+Dim ArrSchlaege_Saldo_N_Gemeinde(260, 300)
+Dim ArrSchlaege_Saldo_P_Gemeinde(260, 300)
+Dim SchlagP As Double
+Dim Kreis As String
+Dim Gemeinde As String
+Dim N As Double
+Dim P As Double
+Dim GroesseN As Double
+Dim GroesseP As Double
+Dim Kreis2 As Long
+Dim Gemeinde2 As Long
+Dim letztezeileID_Array As Long
+Dim letztezeileID_Kultur As Long
+Dim letztezeileID_FNN As Long
+
+UserForm1.Show vbModeless
+DoEvents
+
+'Call GetMoreSpeed
+
+On Error Resume Next
+
+Application.EnableEvents = False
+Application.Calculation = xlCalculationManual
+Application.ScreenUpdating = Fasle
+
+Application.DisplayAlerts = False
+
+Worksheets("Flaechen_Saldo_N").Delete
+Worksheets("Flaechen_Saldo_P").Delete
+
+Application.DisplayAlerts = True
+
+Worksheets.Add after:=Worksheets("Steuerung")
+ActiveSheet.Name = "Flaechen_Saldo_N"
+
+Worksheets.Add after:=Worksheets("Steuerung")
+ActiveSheet.Name = "Flaechen_Saldo_P"
+
+Pruefsumme = 0
+    
+For Each blatt In ActiveWorkbook.Worksheets
+
+    If blatt.Name = "Anl5_LN_Gemeinde" Or _
+    blatt.Name = "Anl5_N_Gemeinde" Or _
+    blatt.Name = "Anl5_P_Gemeinde" Or _
+    blatt.Name = "DBE_Ertrag_Gemeinde" Or _
+    blatt.Name = "Duengungen_LN_Gemeinde" Or _
+    blatt.Name = "Koeffizienten" Then
+    Pruefsumme = Pruefsumme + 1
+    End If
+
+Next blatt
+    
+If Pruefsumme <> 6 Then
+    MsgBox ("Es fehlen Berechnungen auf Ebene der Gemeinden oder die Koeffizienten sind nicht geladen.")
+    GoTo LastLine
+End If
+
+Worksheets("Flaechen_Saldo_N").Cells(1, 1) = "FNN ID"
+Worksheets("Flaechen_Saldo_N").Cells(1, 2) = "Kultur_ID"
+Worksheets("Flaechen_Saldo_N").Cells(1, 3) = "BTNR"
+Worksheets("Flaechen_Saldo_N").Cells(1, 4) = "Kreis_Auto"
+Worksheets("Flaechen_Saldo_N").Cells(1, 5) = "GemeindeID_Auto"
+Worksheets("Flaechen_Saldo_N").Cells(1, 6) = "Größe"
+Worksheets("Flaechen_Saldo_N").Cells(1, 7) = "TF Typ"
+Worksheets("Flaechen_Saldo_N").Cells(1, 8) = "Kultur"
+Worksheets("Flaechen_Saldo_N").Cells(1, 9) = "code"
+Worksheets("Flaechen_Saldo_N").Cells(1, 10) = "Zufuhr N"
+Worksheets("Flaechen_Saldo_N").Cells(1, 11) = "Zufuhr N/ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 12) = "Abfuhr N"
+Worksheets("Flaechen_Saldo_N").Cells(1, 13) = "Abfuhr N/ha"
+
+Worksheets("Flaechen_Saldo_N").Cells(1, 14) = "Ertrag"
+Worksheets("Flaechen_Saldo_N").Cells(1, 15) = "Ertrag Quelle"
+Worksheets("Flaechen_Saldo_N").Cells(1, 16) = "Saldo/ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 17) = "Saldo Quelle"
+Worksheets("Flaechen_Saldo_N").Cells(1, 18) = "Saldo"
+Worksheets("Flaechen_Saldo_N").Cells(1, 19) = "Menge N_MD"
+Worksheets("Flaechen_Saldo_N").Cells(1, 20) = "N_MD / ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 21) = "Menge N_WD"
+Worksheets("Flaechen_Saldo_N").Cells(1, 22) = "N_WD / ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 23) = "Menge Nfix"
+Worksheets("Flaechen_Saldo_N").Cells(1, 24) = "Nfix / ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 25) = "Menge N_Andere"
+Worksheets("Flaechen_Saldo_N").Cells(1, 26) = "N_Andere / ha"
+Worksheets("Flaechen_Saldo_N").Cells(1, 27) = "Anl5"
+Worksheets("Flaechen_Saldo_N").Cells(1, 28) = "FA_NR"
+Worksheets("Flaechen_Saldo_N").Cells(1, 29) = "FA_NR - Kultur"
+
+Worksheets("Flaechen_Saldo_P").Cells(1, 1) = "FNN ID"
+Worksheets("Flaechen_Saldo_P").Cells(1, 2) = "Kultur_ID"
+Worksheets("Flaechen_Saldo_P").Cells(1, 3) = "BTNR"
+Worksheets("Flaechen_Saldo_P").Cells(1, 4) = "Kreis_Auto"
+Worksheets("Flaechen_Saldo_P").Cells(1, 5) = "GemeindeID_Auto"
+Worksheets("Flaechen_Saldo_P").Cells(1, 6) = "Größe"
+Worksheets("Flaechen_Saldo_P").Cells(1, 7) = "TF Typ"
+Worksheets("Flaechen_Saldo_P").Cells(1, 8) = "Kultur"
+Worksheets("Flaechen_Saldo_P").Cells(1, 9) = "code"
+Worksheets("Flaechen_Saldo_P").Cells(1, 10) = "Zufuhr N" '_FM Betrieb"
+Worksheets("Flaechen_Saldo_P").Cells(1, 11) = "Ertrag"
+Worksheets("Flaechen_Saldo_P").Cells(1, 12) = "Ertrag Quelle"
+Worksheets("Flaechen_Saldo_P").Cells(1, 13) = "Saldo/ha"
+Worksheets("Flaechen_Saldo_P").Cells(1, 14) = "Saldo"
+Worksheets("Flaechen_Saldo_P").Cells(1, 15) = "Anl5"
+
+'ID Array aus Schlagsaldo
+
+letztezeileID_Array = Worksheets("Schlaege_Saldo_N").Cells(Rows.Count, 1).End(xlUp).Row
+
+ReDim IDArray(1 To letztezeileID_Array, 1 To 25)
+
+For lng_zeile_quelle = 2 To letztezeileID_Array
+IDArray(lng_zeile_quelle - 1, 1) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 1)
+IDArray(lng_zeile_quelle - 1, 2) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 2)
+IDArray(lng_zeile_quelle - 1, 3) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 3)
+IDArray(lng_zeile_quelle - 1, 4) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 4)
+IDArray(lng_zeile_quelle - 1, 5) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 5)
+IDArray(lng_zeile_quelle - 1, 6) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 6)
+IDArray(lng_zeile_quelle - 1, 7) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 7)
+IDArray(lng_zeile_quelle - 1, 8) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 9) 'Zufuhr N
+IDArray(lng_zeile_quelle - 1, 9) = Worksheets("Schlaege_Saldo_P").Cells(lng_zeile_quelle, 9) 'Zufuhr P
+IDArray(lng_zeile_quelle - 1, 10) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 13) 'Ertrag dt FM/ha
+IDArray(lng_zeile_quelle - 1, 11) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 14) 'Ertrag Quelle
+
+IDArray(lng_zeile_quelle - 1, 13) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 15) 'Koeffizient N
+IDArray(lng_zeile_quelle - 1, 14) = Worksheets("Schlaege_Saldo_P").Cells(lng_zeile_quelle, 12) 'Koeffizient P
+IDArray(lng_zeile_quelle - 1, 15) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 16) 'Saldo
+IDArray(lng_zeile_quelle - 1, 17) = Worksheets("Schlaege_Saldo_P").Cells(lng_zeile_quelle, 13) 'Saldo P
+
+IDArray(lng_zeile_quelle - 1, 19) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 8) 'Ernte
+IDArray(lng_zeile_quelle - 1, 20) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 18) 'Exportquelle
+IDArray(lng_zeile_quelle - 1, 21) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 19) 'NWD
+IDArray(lng_zeile_quelle - 1, 22) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 21) 'NMD
+IDArray(lng_zeile_quelle - 1, 23) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 23) 'Nfix
+IDArray(lng_zeile_quelle - 1, 24) = Worksheets("Schlaege_Saldo_N").Cells(lng_zeile_quelle, 25) 'Nandere
+        
+For a = 1 To 1000
+    If IDArray(lng_zeile_quelle - 1, 6) = Worksheets("Koeffizienten").Cells(a, 13) Then
+        IDArray(lng_zeile_quelle - 1, 25) = Worksheets("Koeffizienten").Cells(a, 10) 'Invekos_Nr
+    End If
+Next a
+        
+Next lng_zeile_quelle
+
+'Statistik
+ArrSchlaege_Saldo_N_Kreis(1, 3) = "Sachsen-Anhalt"
+ArrSchlaege_Saldo_N_Kreis(1, 4) = "Altmarkkreis Salzwedel"
+ArrSchlaege_Saldo_N_Kreis(1, 5) = "Anhalt-Bitterfeld"
+ArrSchlaege_Saldo_N_Kreis(1, 6) = "Börde"
+ArrSchlaege_Saldo_N_Kreis(1, 7) = "Burgenlandkreis"
+ArrSchlaege_Saldo_N_Kreis(1, 8) = "Harz"
+ArrSchlaege_Saldo_N_Kreis(1, 9) = "Jerichower Land"
+ArrSchlaege_Saldo_N_Kreis(1, 10) = "Mansfeld-Südharz"
+ArrSchlaege_Saldo_N_Kreis(1, 11) = "Saalekreis"
+ArrSchlaege_Saldo_N_Kreis(1, 12) = "Salzlandkreis"
+ArrSchlaege_Saldo_N_Kreis(1, 13) = "Stendal"
+ArrSchlaege_Saldo_N_Kreis(1, 14) = "Wittenberg"
+ArrSchlaege_Saldo_N_Kreis(1, 15) = "keine Zuordnung möglich"
+ 
+ArrSchlaege_Saldo_P_Kreis(1, 3) = "Sachsen-Anhalt"
+ArrSchlaege_Saldo_P_Kreis(1, 4) = "Altmarkkreis Salzwedel"
+ArrSchlaege_Saldo_P_Kreis(1, 5) = "Anhalt-Bitterfeld"
+ArrSchlaege_Saldo_P_Kreis(1, 6) = "Börde"
+ArrSchlaege_Saldo_P_Kreis(1, 7) = "Burgenlandkreis"
+ArrSchlaege_Saldo_P_Kreis(1, 8) = "Harz"
+ArrSchlaege_Saldo_P_Kreis(1, 9) = "Jerichower Land"
+ArrSchlaege_Saldo_P_Kreis(1, 10) = "Mansfeld-Südharz"
+ArrSchlaege_Saldo_P_Kreis(1, 11) = "Saalekreis"
+ArrSchlaege_Saldo_P_Kreis(1, 12) = "Salzlandkreis"
+ArrSchlaege_Saldo_P_Kreis(1, 13) = "Stendal"
+ArrSchlaege_Saldo_P_Kreis(1, 14) = "Wittenberg"
+ArrSchlaege_Saldo_P_Kreis(1, 15) = "keine Zuordnung möglich"
+
+For j = 1 To 2
+    For i = 2 To 253
+
+   ArrSchlaege_Saldo_N_Kreis(i, j) = Worksheets("Kulturen").Cells(i, j)
+   ArrSchlaege_Saldo_P_Kreis(i, j) = Worksheets("Kulturen").Cells(i, j)
+
+    Next i
+Next j
+
+For j = 3 To 15
+    
+    Kreis = ArrSchlaege_Saldo_N_Kreis(1, j)
+    
+    For i = 2 To 253
+    
+        FrNr = ArrSchlaege_Saldo_N_Kreis(i, 1)
+            
+        N = 0
+        P = 0
+        GroesseN = 0
+        GroesseP = 0
+        
+        If j = 3 Then
+            
+            For lng_zeile = 1 To letztezeileID
+                If IDArray(lng_zeile, 6) = FrNr And IDArray(lng_zeile, 7) <> "" Then
+                    N = N + IDArray(lng_zeile, 8)
+                    P = P + IDArray(lng_zeile, 9)
+                    If N <> 0 Then
+                        GroesseN = GroesseN + IDArray(lng_zeile, 7)
+                    End If
+                    If N <> 0 Then
+                        GroesseP = GroesseP + IDArray(lng_zeile, 7)
+                    End If
+                End If
+            Next lng_zeile
+        
+        Else
+        
+            For lng_zeile = 1 To letztezeileID
+                If IDArray(lng_zeile, 6) = FrNr And IDArray(lng_zeile, 2) = Kreis Then
+                    N = N + IDArray(lng_zeile, 8)
+                    P = P + IDArray(lng_zeile, 9)
+                    If N <> 0 Then
+                        GroesseN = GroesseN + IDArray(lng_zeile, 7)
+                    End If
+                    If N <> 0 Then
+                        GroesseP = GroesseP + IDArray(lng_zeile, 7)
+                    End If
+                End If
+            Next lng_zeile
+        End If
+
+        If GroesseN <> 0 Then
+           ArrSchlaege_Saldo_N_Kreis(i, j) = N / GroesseN
+        End If
+        
+        If GroesseP <> 0 Then
+           ArrSchlaege_Saldo_P_Kreis(i, j) = P / GroesseP
+        End If
+        
+    Next i
+Next j
+
+For j = 1 To 2
+        For i = 4 To 253
+           ArrSchlaege_Saldo_N_Gemeinde(i, j) = Worksheets("Kulturen").Cells(i, j)
+           ArrSchlaege_Saldo_P_Gemeinde(i, j) = Worksheets("Kulturen").Cells(i, j)
+        Next i
+    Next j
+
+For j = 3 To 220
+    
+   ArrSchlaege_Saldo_N_Gemeinde(3, j) = Worksheets("Gemeinden").Cells(j, 1)
+   ArrSchlaege_Saldo_N_Gemeinde(2, j) = Worksheets("Gemeinden").Cells(j, 2)
+   ArrSchlaege_Saldo_N_Gemeinde(1, j) = Worksheets("Gemeinden").Cells(j, 3)
+    
+   ArrSchlaege_Saldo_P_Gemeinde(3, j) = Worksheets("Gemeinden").Cells(j, 1)
+   ArrSchlaege_Saldo_P_Gemeinde(2, j) = Worksheets("Gemeinden").Cells(j, 2)
+   ArrSchlaege_Saldo_P_Gemeinde(1, j) = Worksheets("Gemeinden").Cells(j, 3)
+        
+    Gemeinde = ArrSchlaege_Saldo_N_Gemeinde(3, j)
+    
+    For i = 4 To 253
+    
+        FrNr = ArrSchlaege_Saldo_N_Gemeinde(i, 1)
+            
+        N = 0
+        P = 0
+        GroesseN = 0
+        GroesseP = 0
+        
+        For lng_zeile = 1 To letztezeileID
+            If IDArray(lng_zeile, 6) = FrNr And IDArray(lng_zeile, 3) = Gemeinde Then
+                N = N + IDArray(lng_zeile, 8)
+                P = P + IDArray(lng_zeile, 9)
+                If N <> 0 Then
+                    GroesseN = GroesseN + IDArray(lng_zeile, 7)
+                End If
+                If N <> 0 Then
+                    GroesseP = GroesseP + IDArray(lng_zeile, 7)
+                End If
+            End If
+        Next lng_zeile
+
+        
+        If GroesseN <> 0 Then
+           ArrSchlaege_Saldo_N_Gemeinde(i, j) = N / GroesseN
+        End If
+        
+        If GroesseP <> 0 Then
+           ArrSchlaege_Saldo_P_Gemeinde(i, j) = P / GroesseP
+        End If
+
+    Next i
+
+Next j
+
+'IDArray -> IDKultur
+
+ReDim IDKultur(1 To letztezeileID_Array, 1 To 25)
+
+For b = 1 To letztezeileID_Array
+vorhanden = False
+c = 1
+    For a = 1 To letztezeileID_Array
+        If IDKultur(a, 1) <> "" Then
+            If IDKultur(a, 1) & "_" & IDKultur(a, 6) = IDArray(b, 1) & "_" & IDArray(b, 6) Then
+                IDKultur(a, 7) = IDKultur(a, 7) + IDArray(b, 7) 'Fläche
+                IDKultur(a, 8) = IDKultur(a, 8) + IDArray(b, 8) 'N Zufuhr
+                IDKultur(a, 9) = IDKultur(a, 9) + IDArray(b, 9) 'P Zufuhr
+                IDKultur(a, 15) = IDKultur(a, 15) + IDArray(b, 15) 'N Saldo XXX
+                IDKultur(a, 17) = IDKultur(a, 17) + IDArray(b, 17) 'P Saldo XXX
+                vorhanden = True
+                Exit For
+            Else
+                vorhanden = False
+                c = a + 1
+            End If
+        Else
+            Exit For
+        End If
+    
+    Next a
+    
+    If vorhanden = False Then
+        IDKultur(c, 1) = IDArray(b, 1)
+        IDKultur(c, 2) = IDArray(b, 2)
+        IDKultur(c, 3) = IDArray(b, 3)
+        IDKultur(c, 4) = IDArray(b, 1) & "_" & IDArray(b, 25)
+        IDKultur(c, 5) = IDArray(b, 5)
+        IDKultur(c, 6) = IDArray(b, 6)
+        IDKultur(c, 7) = IDArray(b, 7)
+        IDKultur(c, 8) = IDArray(b, 8)
+        IDKultur(c, 9) = IDArray(b, 9)
+        IDKultur(c, 10) = IDArray(b, 10)
+        IDKultur(c, 11) = IDArray(b, 11)
+        IDKultur(c, 12) = IDArray(b, 12)
+        IDKultur(c, 13) = IDArray(b, 13)
+        IDKultur(c, 14) = IDArray(b, 14)
+        IDKultur(c, 15) = IDArray(b, 15)
+        IDKultur(c, 16) = IDArray(b, 16)
+        IDKultur(c, 17) = IDArray(b, 17)
+        IDKultur(c, 18) = IDArray(b, 18)
+        IDKultur(c, 19) = IDArray(b, 19)
+        IDKultur(c, 20) = IDArray(b, 20)
+        IDKultur(c, 21) = IDArray(b, 21)
+        IDKultur(c, 22) = IDArray(b, 22)
+        IDKultur(c, 23) = IDArray(b, 23)
+        IDKultur(c, 24) = IDArray(b, 24)
+        IDKultur(c, 25) = IDArray(b, 25) 'Invekos Code
+    End If
+        
+Next b
+
+letztezeileID_Kultur = c
+
+'FNN
+
+Call RegionalisierungArray
+
+letztezeileID_FNN = Worksheets("NN").Cells(Rows.Count, 1).End(xlUp).Row
+
+ReDim FNNArray(1 To letztezeileID_FNN, 1 To 23)
+
+For a = 1 To letztezeileID_FNN
+    FNNArray(a, 1) = Worksheets("NN").Cells(a + 1, 1) 'ID
+    FNNArray(a, 2) = CStr(Worksheets("NN").Cells(a + 1, 2)) & "_" & CStr(Worksheets("NN").Cells(a + 1, 14)) 'Kultur ID Invekos Code
+    FNNArray(a, 3) = Worksheets("NN").Cells(a + 1, 12) 'Größe
+    FNNArray(a, 6) = Worksheets("NN").Cells(a + 1, 11) 'TF Typ
+    FNNArray(a, 7) = Worksheets("NN").Cells(a + 1, 13) 'Kultur
+    FNNArray(a, 8) = CInt(Worksheets("NN").Cells(a + 1, 14)) * 1 'Invekos Code
+    FNNArray(a, 9) = Worksheets("NN").Cells(a + 1, 2) 'BTNR
+    
+
+    For b = 1 To c '15000
+        If FNNArray(a, 9) = IDKultur(b, 1) Then
+            FNNArray(a, 10) = IDKultur(b, 2) 'Kreis
+            FNNArray(a, 11) = IDKultur(b, 3) 'Gemeinde ID
+            Exit For
+        End If
+    Next b
+    
+    For b = 1 To c '15000
+        If FNNArray(a, 2) = IDKultur(b, 4) Then
+            FNNArray(a, 4) = IDKultur(b, 8) / IDKultur(b, 7) 'IDKultur(b, 15)
+            FNNArray(a, 5) = IDKultur(b, 9) / IDKultur(b, 7) 'IDKultur(b, 17)
+            FNNArray(a, 13) = IDKultur(b, 8) 'zufuhr N
+            FNNArray(a, 14) = IDKultur(b, 10) 'Ertrag
+            FNNArray(a, 15) = IDKultur(b, 11) 'Ertrag Quelle
+            FNNArray(a, 16) = IDKultur(b, 21) 'NMD
+            FNNArray(a, 17) = IDKultur(b, 22) 'NWD
+            FNNArray(a, 18) = IDKultur(b, 23) 'Nfix
+            FNNArray(a, 19) = IDKultur(b, 24) 'Nandere
+            FNNArray(a, 21) = "Betriebsbilanz"
+            FNNArray(a, 22) = IDKultur(b, 6) 'FA_Nr
+            FNNArray(a, 23) = IDKultur(b, 13) ' Koeffizient
+            Exit For
+        End If
+    Next b
+    
+    If FNNArray(a, 22) = "" Then
+        For b = 2 To 1000
+            If Worksheets("Koeffizienten").Cells(b, 10) = FNNArray(a, 8) Then
+                FNNArray(a, 22) = Worksheets("Koeffizienten").Cells(b, 13)
+                Exit For
+            End If
+        Next b
+    End If
+    
+    For b = 2 To 200000
+        If CStr(Worksheets("Anl5").Cells(b, 2) * 1) = FNNArray(a, 9) Then
+            FNNArray(a, 20) = Worksheets("Anl5").Cells(b, 128)
+            Exit For
+        End If
+        If FNNArray(a, 20) = "" Then
+            FNNArray(a, 20) = "nicht vorhanden"
+        End If
+    Next b
+    
+    If FNNArray(a, 10) = "" Then
+        For b = 0 To UBound(RegioGemeindeArray)
+            If RegioGemeindeArray(b, 0) = FNNArray(a, 9) Then
+                FNNArray(a, 11) = RegioGemeindeArray(b, 1)
+                Exit For
+            End If
+        Next b
+        For b = 0 To UBound(RegioKreisArray)
+            If RegioKreisArray(b, 0) = FNNArray(a, 9) Then
+                FNNArray(a, 10) = RegioKreisArray(b, 1)
+                GoTo LoopLineRegio
+            End If
+        Next b
+    End If
+    
+    If FNNArray(a, 10) = "" Then
+        Kreis2 = Mid(FNNArray(a, 9), 3, 3)
+        Gemeinde2 = Mid(FNNArray(a, 9), 6, 3)
+        Select Case Kreis2  'Keis
+            Case 1, 4, 40, 51, 53, 101, 801
+            FNNArray(a, 10) = "Dessau-Roßlau, Stadt"
+            Case 2, 202, 802
+            FNNArray(a, 10) = "Halle (Saale), Stadt"
+            Case 3, 303, 803
+            FNNArray(a, 10) = "Magdeburg, Landeshauptstadt"
+            Case 81, 370, 870, 881
+            FNNArray(a, 10) = "Altmarkkreis Salzwedel"
+            Case 82, 154, 159, 854, 859, 882
+            FNNArray(a, 10) = "Anhalt-Bitterfeld"
+            Case 83, 355, 362, 862, 883, 855
+            FNNArray(a, 10) = "Börde"
+            Case 84, 256, 268, 856, 868, 884
+            FNNArray(a, 10) = "Burgenlandkreis"
+            Case 85, 357, 364, 369, 857, 864, 869, 885
+            FNNArray(a, 10) = "Harz"
+            Case 86, 358, 858, 886
+            FNNArray(a, 10) = "Jerichower Land"
+            Case 87, 260, 266, 860, 866, 887
+            FNNArray(a, 10) = "Mansfeld-Südharz"
+            Case 88, 261, 265, 861, 865, 888
+            FNNArray(a, 10) = "Saalekreis"
+            Case 89, 153, 367, 853, 867, 889
+            FNNArray(a, 10) = "Salzlandkreis"
+            Case 90, 363, 863, 890
+            FNNArray(a, 10) = "Stendal"
+            Case 91, 171, 871, 891
+            FNNArray(a, 10) = "Wittenberg"
+            Case 151, 851
+                Select Case Gemeinde2
+                    Case 1, 2, 6, 10, 11, 14, 15, 19, 20, 22, 26, 32, 33, 37, 39, 41, 42, 44, 46, 49, 58, 59, 63, 67, 68
+                    FNNArray(a, 10) = "Anhalt-Bitterfeld"
+                End Select
+            Case 60, 151, 851
+                Select Case Gemeinde2
+                    Case 4, 40, 51, 53, 60
+                        FNNArray(a, 10) = "Dessau-Roßlau, Stadt"
+                End Select
+            Case 352, 852
+                Select Case Gemeinde2
+                    Case 7, 8, 24, 28, 29, 31, 40, 43, 44
+                        FNNArray(a, 10) = "Harz"
+                End Select
+            Case 151, 851
+                Select Case Gemeinde2
+                    Case 12, 21, 30, 31, 34, 35, 45, 52, 54, 66
+                        FNNArray(a, 10) = "Jerichower Land"
+                End Select
+            Case 352, 852
+                Select Case Gemeinde2
+                    Case 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 30, 32, 33, 34, 35, 36, 37, 38, 39, 41, 42
+                        FNNArray(a, 10) = "Salzlandkreis"
+                End Select
+            Case 151, 851
+                Select Case Gemeinde2
+                    Case 3, 5, 7, 8, 9, 13, 16, 17, 18, 23, 24, 25, 27, 28, 29, 36, 38, 43, 47, 48, 50, 55, 56, 57, 61, 62, 64, 65, 69
+                        FNNArray(a, 10) = "Wittenberg"
+                End Select
+            Case Else
+            FNNArray(a, 10) = "keine Zuordnung möglich"
+        End Select
+    End If
+
+LoopLineRegio:
+
+    If FNNArray(a, 4) = "" Or FNNArray(a, 4) = "0" Then
+    FNNArray(a, 21) = "MW Gemeinde" 'Test
+        For j = 3 To 219
+            If ArrSchlaege_Saldo_N_Gemeinde(3, j) = FNNArray(a, 11) Then
+                For i = 4 To 254
+                    If ArrSchlaege_Saldo_N_Gemeinde(i, 1) = FNNArray(a, 22) And ArrSchlaege_Saldo_N_Gemeinde(i, j) <> "" Then
+                        FNNArray(a, 4) = ArrSchlaege_Saldo_N_Gemeinde(i, j)
+                        FNNArray(a, 21) = "MW Gemeinde"
+                    GoTo NextLine11
+                    End If
+                Next i
+            End If
+        Next j
+    End If
+
+
+    If FNNArray(a, 4) = "" Or FNNArray(a, 4) = "0" Then
+    FNNArray(a, 21) = "MW Kreis" 'Test
+        For j = 3 To 14
+            If ArrSchlaege_Saldo_N_Kreis(1, j) = FNNArray(a, 10) Then
+                For i = 2 To 252
+                    If ArrSchlaege_Saldo_N_Kreis(i, 1) = FNNArray(a, 22) And ArrSchlaege_Saldo_N_Kreis(i, j) <> "" Then
+                        FNNArray(a, 4) = ArrSchlaege_Saldo_N_Kreis(i, j)
+                        FNNArray(a, 21) = "MW Kreis"
+                    GoTo NextLine11
+                    End If
+                Next i
+            End If
+        Next j
+    End If
+
+
+    If FNNArray(a, 4) = "" Or FNNArray(a, 4) = "0" Then
+    FNNArray(a, 21) = "MW Sachsen-Anhalt" 'Test
+        For i = 2 To 14
+            If ArrSchlaege_Saldo_N_Kreis(i, 1) = FNNArray(a, 22) Then
+                FNNArray(a, 4) = ArrSchlaege_Saldo_N_Kreis(i, 3)
+                FNNArray(a, 21) = "MW Sachsen-Anhalt"
+            GoTo NextLine11
+            End If
+        Next i
+    End If
+NextLine11:
+
+Next a
+
+
+'Werte schreiben
+
+lng_zeile = 2
+For b = 1 To letztezeileID_FNN
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 1) = FNNArray(b, 1) 'ID
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 2) = FNNArray(b, 2) 'IDKultur
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 3) = FNNArray(b, 9) 'BTNR
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 4) = FNNArray(b, 10) 'Kreis
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 5) = FNNArray(b, 11) 'Gemeinde
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 6) = FNNArray(b, 3) 'größe
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 7) = FNNArray(b, 6) 'TF Typ
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 8) = FNNArray(b, 7) 'kultur
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 9) = FNNArray(b, 8) 'code
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 10) = FNNArray(b, 13) 'Zufuhr N
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 11) = FNNArray(b, 13) / FNNArray(b, 3) 'Zufuhr N
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 12) = FNNArray(b, 3) * FNNArray(b, 14) * FNNArray(b, 23) 'Abfuhr N
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 13) = FNNArray(b, 14) * FNNArray(b, 23) 'Abfuhr N/ha
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 14) = FNNArray(b, 14) 'Ertrag
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 15) = FNNArray(b, 15) 'Ertrag_Quelle
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 16) = FNNArray(b, 4) 'saldo/ha
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 17) = FNNArray(b, 21) 'SaldoQuelle
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 18) = FNNArray(b, 3) * FNNArray(b, 4) 'saldo
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 19) = FNNArray(b, 16)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 20) = FNNArray(b, 16) / FNNArray(b, 3)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 21) = FNNArray(b, 17)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 22) = FNNArray(b, 17) / FNNArray(b, 3)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 23) = FNNArray(b, 18)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 24) = FNNArray(b, 18) / FNNArray(b, 3)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 25) = FNNArray(b, 19)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 26) = FNNArray(b, 19) / FNNArray(b, 3)
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 27) = FNNArray(b, 20) 'anl5
+        Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 28) = FNNArray(b, 22) 'FA_NR
+        
+        letztezeile_quelle = Worksheets("Kulturen").Cells(Rows.Count, 1).End(xlUp).Row
+        For lng_zeile_quelle = 2 To letztezeile_quelle
+            If Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 28) = Worksheets("Kulturen").Cells(lng_zeile_quelle, 1) Then
+                Worksheets("Flaechen_Saldo_N").Cells(lng_zeile, 29) = Worksheets("Kulturen").Cells(lng_zeile_quelle, 2)
+            Exit For
+            End If
+        Next lng_zeile_quelle
+        
+        Worksheets("Flaechen_Saldo_p").Cells(lng_zeile, 1) = FNNArray(b, 1) 'ID
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 2) = FNNArray(b, 2) 'IDKultur
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 3) = FNNArray(b, 9) 'BTNR
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 4) = FNNArray(b, 10) 'Kreis
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 5) = FNNArray(b, 11) 'Gemeinde
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 6) = FNNArray(b, 3) 'größe
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 7) = FNNArray(b, 6) 'TF Typ
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 8) = FNNArray(b, 7) 'kultur
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 9) = FNNArray(b, 8) 'code
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 10) = FNNArray(b, 13) 'Zufuhr N
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 11) = FNNArray(b, 14) 'Ertrag
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 12) = FNNArray(b, 15) 'Ertrag_Quelle
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 13) = FNNArray(b, 5) 'saldo/ha
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 14) = FNNArray(b, 16) 'SaldoQuelle
+        Worksheets("Flaechen_Saldo_P").Cells(lng_zeile, 15) = FNNArray(b, 20) 'anl5
+        lng_zeile = lng_zeile + 1
+Next b
+    
+Worksheets("Steuerung").Cells(103, 18) = WorksheetFunction.CountIf(Worksheets("Flaechen_Saldo_N").Range("G:G"), "HNF")
+Worksheets("Steuerung").Cells(104, 18) = WorksheetFunction.SumIfs(Worksheets("Flaechen_Saldo_N").Range("F:F"), Worksheets("Flaechen_Saldo_N").Range("G:G"), "HNF")
+Worksheets("Steuerung").Cells(105, 18) = WorksheetFunction.SumIfs(Worksheets("Flaechen_Saldo_N").Range("F:F"), Worksheets("Flaechen_Saldo_N").Range("G:G"), "HNF", Worksheets("Flaechen_Saldo_N").Range("O:O"), "<>0")
+Worksheets("Steuerung").Cells(106, 18) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("O:O")) / WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("F:F"))
+
+Worksheets("Steuerung").Cells(106, 19) = ComboBoxNettoSchlag
+
+Worksheets("Steuerung").Cells(103, 22) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("P:P"))
+Worksheets("Steuerung").Cells(103, 23) = WorksheetFunction.SumIf(Worksheets("Flaechen_Saldo_N").Range("P:P"), "<>0", Worksheets("Flaechen_Saldo_N").Range("F:F"))
+Worksheets("Steuerung").Cells(103, 24) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("P:P")) / Worksheets("Steuerung").Cells(104, 23)
+
+Worksheets("Steuerung").Cells(104, 22) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("R:R"))
+Worksheets("Steuerung").Cells(104, 23) = WorksheetFunction.SumIf(Worksheets("Flaechen_Saldo_N").Range("R:R"), "<>0", Worksheets("Flaechen_Saldo_N").Range("F:F"))
+Worksheets("Steuerung").Cells(104, 24) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("R:R")) / Worksheets("Steuerung").Cells(104, 23)
+
+Worksheets("Steuerung").Cells(105, 22) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("T:T"))
+Worksheets("Steuerung").Cells(105, 23) = WorksheetFunction.SumIf(Worksheets("Flaechen_Saldo_N").Range("T:T"), "<>0", Worksheets("Flaechen_Saldo_N").Range("F:F"))
+Worksheets("Steuerung").Cells(105, 24) = WorksheetFunction.Sum(Worksheets("Flaechen_Saldo_N").Range("T:T")) / Worksheets("Steuerung").Cells(104, 23)
+
+
+'Ende
+    
+Worksheets("Steuerung").Select
+
+Worksheets("Flaechen_Saldo_N").Activate
+Worksheets("Flaechen_Saldo_N").Range("D2").Select
+Worksheets("Flaechen_Saldo_N").Range("H:K").NumberFormat = "#,##0.00"
+ActiveWindow.FreezePanes = True
+
+Worksheets("Flaechen_Saldo_P").Activate
+Worksheets("Flaechen_Saldo_P").Range("D2").Select
+Worksheets("Flaechen_Saldo_P").Range("H:K").NumberFormat = "#,##0.00"
+ActiveWindow.FreezePanes = True
+
+LastLine:
+
+Application.EnableEvents = True
+Application.Calculation = xlCalculationAutomatic
+Application.ScreenUpdating = True
+
+Worksheets("Steuerung").Select
+
+UserForm1.Hide
+
+
+End Sub
